@@ -31,6 +31,7 @@ class NumberEliminationGame:
         self.message = tk.StringVar()
         self.message.set("")
         self.game_over = False  # 游戏结束标志
+        self.score = 0  # 初始化分数
         
         # 框选相关变量
         self.drawing_selection = False
@@ -64,6 +65,9 @@ class NumberEliminationGame:
         
         self.sum_label = tk.Label(info_frame, text="当前选择和: 0", font=("Arial", 12), bg=self.COLORS['bg'])
         self.sum_label.pack(side='left')
+        
+        self.score_label = tk.Label(info_frame, text=f"得分: {self.score}", font=("Arial", 12), bg=self.COLORS['bg'])
+        self.score_label.pack(side='left', padx=(20, 0))
         
         self.hint_label = tk.Label(info_frame, text="", font=("Arial", 12), fg=self.COLORS['highlight'], bg=self.COLORS['bg'])
         self.hint_label.pack(side='left', padx=(20, 0))
@@ -175,6 +179,10 @@ class NumberEliminationGame:
             for r, c in self.selected_cells:
                 self.board[r][c] = 0  # 0表示已消除
             self.selected_cells.clear()
+            
+            # 增加分数
+            self.score += 100
+            self.score_label.config(text=f"得分: {self.score}")
             
             # 检查游戏是否结束
             if self.check_game_over():
@@ -372,6 +380,8 @@ class NumberEliminationGame:
         self.hint_rect = None  # 清除提示
         self.message.set("")
         self.game_over = False  # 重置游戏结束标志
+        self.score = 0  # 重置分数
+        self.score_label.config(text=f"得分: {self.score}")
         self.update_display()
 
 def main():
