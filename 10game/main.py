@@ -8,9 +8,12 @@ class NumberEliminationGame:
         self.root.title("数字10消除游戏")
         self.root.resizable(False, False)
         
+        # 关卡配置
+        self.level = 1  # 初始关卡
+        self.max_levels = 10  # 最大关卡数
+        self.level_configs = self.generate_level_configs()
+        
         # 游戏常量设置
-        self.ROWS = 10
-        self.COLS = 16
         self.CELL_SIZE = 40
         self.BOARD_PADDING = 20  # 棋盘周围的填充
         self.GAME_TIME = 120  # 游戏时间120秒
@@ -26,6 +29,18 @@ class NumberEliminationGame:
         }
         
         # 初始化游戏状态
+        self.setup_level()  # 根据关卡设置行列数
+        
+        # 初始化界面组件
+        self.main_frame = None
+        self.canvas = None
+        self.level_label = None
+        self.sum_label = None
+        self.score_label = None
+        self.time_label = None
+        self.hint_label = None
+        self.message_label = None
+        
         self.board = [[random.randint(1, 9) for _ in range(self.COLS)] for _ in range(self.ROWS)]
         self.selected_cells = []
         self.hint_rect = None  # 用于存储提示的矩形框坐标
@@ -47,15 +62,38 @@ class NumberEliminationGame:
         self.update_display()
         self.start_timer()  # 开始计时
     
+    def generate_level_configs(self):
+        """生成关卡配置，分数呈指数级增长"""
+        configs = []
+        for i in range(self.max_levels):
+            # 行列数逐渐增加
+            rows = 8 + i if i < 4 else 12  # 前4关逐渐增加到12行
+            cols = 10 + i * 2 if i < 3 else 16 + (i - 3)  # 前3关每关增加2列，之后固定16列以上
+            # 目标分数呈指数增长 (1000 * 2^(n-1))
+            target_score = 1000 * (2 ** i)
+            configs.append({'rows': rows, 'cols': cols, 'target_score': target_score})
+        return configs
+    
+    def setup_level(self):
+        """根据当前关卡设置行列数"""
+        level_config = self.level_configs[min(self.level - 1, len(self.level_configs) - 1)]
+        self.ROWS = level_config['rows']
+        self.COLS = level_config['cols']
+        self.target_score = level_config['target_score']
+    
     def create_widgets(self):
+        # 如果主框架已经存在，先销毁
+        if self.main_frame:
+            self.main_frame.destroy()
+            
         # 主框架
-        main_frame = tk.Frame(self.root, bg=self.COLORS['bg'])
-        main_frame.pack(padx=10, pady=10)
+        self.main_frame = tk.Frame(self.root, bg=self.COLORS['bg'])
+        self.main_frame.pack(padx=10, pady=10)
         
         # 游戏区域
         canvas_width = self.COLS*self.CELL_SIZE + 2*self.BOARD_PADDING
         canvas_height = self.ROWS*self.CELL_SIZE + 2*self.BOARD_PADDING
-        self.canvas = tk.Canvas(main_frame, width=canvas_width, height=canvas_height, bg=self.COLORS['bg'])
+        self.canvas = tk.Canvas(self.main_frame, width=canvas_width, height=canvas_height, bg=self.COLORS['bg'])
         self.canvas.pack()
         
         # 绑定鼠标事件
@@ -64,13 +102,16 @@ class NumberEliminationGame:
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
         
         # 信息显示区域
-        info_frame = tk.Frame(main_frame, bg=self.COLORS['bg'])
+        info_frame = tk.Frame(self.main_frame, bg=self.COLORS['bg'])
         info_frame.pack(pady=10, fill='x')
         
-        self.sum_label = tk.Label(info_frame, text="当前选择和: 0", font=("Arial", 12), bg=self.COLORS['bg'])
-        self.sum_label.pack(side='left')
+        self.level_label = tk.Label(info_frame, text=f"关卡: {self.level}/{self.max_levels}", font=("Arial", 12), bg=self.COLORS['bg'])
+        self.level_label.pack(side='left')
         
-        self.score_label = tk.Label(info_frame, text=f"得分: {self.score}", font=("Arial", 12), bg=self.COLORS['bg'])
+        self.sum_label = tk.Label(info_frame, text="当前选择和: 0", font=("Arial", 12), bg=self.COLORS['bg'])
+        self.sum_label.pack(side='left', padx=(20, 0))
+        
+        self.score_label = tk.Label(info_frame, text=f"得分: {self.score}/{self.target_score}", font=("Arial", 12), bg=self.COLORS['bg'])
         self.score_label.pack(side='left', padx=(20, 0))
         
         self.time_label = tk.Label(info_frame, text=f"剩余时间: {self.time_left}s", font=("Arial", 12), bg=self.COLORS['bg'])
@@ -79,11 +120,11 @@ class NumberEliminationGame:
         self.hint_label = tk.Label(info_frame, text="", font=("Arial", 12), fg=self.COLORS['highlight'], bg=self.COLORS['bg'])
         self.hint_label.pack(side='left', padx=(20, 0))
         
-        message_label = tk.Label(main_frame, textvariable=self.message, font=("Arial", 12), fg='red', bg=self.COLORS['bg'])
-        message_label.pack()
+        self.message_label = tk.Label(self.main_frame, textvariable=self.message, font=("Arial", 12), fg='red', bg=self.COLORS['bg'])
+        self.message_label.pack()
         
         # 控制按钮
-        button_frame = tk.Frame(main_frame, bg=self.COLORS['bg'])
+        button_frame = tk.Frame(self.main_frame, bg=self.COLORS['bg'])
         button_frame.pack(pady=10)
         
         reset_btn = tk.Button(button_frame, text="重新开始 (R)", command=self.reset_game)
@@ -105,27 +146,16 @@ class NumberEliminationGame:
         canvas_height = self.ROWS*self.CELL_SIZE + 2*self.BOARD_PADDING
         self.canvas.create_rectangle(0, 0, canvas_width, canvas_height, fill=self.COLORS['bg'], outline='')
         
+        # 创建一个集合来跟踪需要绘制的单元格
+        cells_to_draw = set()
+        
+        # 默认情况下，所有单元格都需要绘制
         for row in range(self.ROWS):
             for col in range(self.COLS):
-                # 添加偏移量以考虑填充
-                x1 = self.BOARD_PADDING + col * self.CELL_SIZE
-                y1 = self.BOARD_PADDING + row * self.CELL_SIZE
-                x2 = x1 + self.CELL_SIZE
-                y2 = y1 + self.CELL_SIZE
-                
-                # 绘制单元格背景（总是灰色）
-                self.canvas.create_rectangle(x1, y1, x2, y2, fill=self.COLORS['cell'], outline='black')
-                
-                # 绘制数字
-                number = self.board[row][col]
-                if number > 0:  # 只绘制未消除的数字
-                    self.canvas.create_text(
-                        (x1+x2)//2, 
-                        (y1+y2)//2, 
-                        text=str(number), 
-                        fill=self.COLORS['text'],
-                        font=("Arial", 16)
-                    )
+                cells_to_draw.add((row, col))
+        
+        # 绘制单元格和数字
+        self.draw_cells(cells_to_draw)
         
         # 绘制选择框
         if self.selection_rect:
@@ -136,7 +166,8 @@ class NumberEliminationGame:
                 self.selection_rect[3],
                 outline='blue',
                 width=2,
-                dash=(4, 2)
+                dash=(4, 2),
+                tags="selection"
             )
         
         # 绘制提示框
@@ -147,8 +178,32 @@ class NumberEliminationGame:
                 self.hint_rect[2],
                 self.hint_rect[3],
                 outline=self.COLORS['hint'],
-                width=3
+                width=3,
+                tags="hint"
             )
+    
+    def draw_cells(self, cells_to_draw):
+        """绘制指定的单元格"""
+        for row, col in cells_to_draw:
+            # 添加偏移量以考虑填充
+            x1 = self.BOARD_PADDING + col * self.CELL_SIZE
+            y1 = self.BOARD_PADDING + row * self.CELL_SIZE
+            x2 = x1 + self.CELL_SIZE
+            y2 = y1 + self.CELL_SIZE
+            
+            # 绘制单元格背景（总是灰色）
+            self.canvas.create_rectangle(x1, y1, x2, y2, fill=self.COLORS['cell'], outline='black')
+            
+            # 绘制数字
+            number = self.board[row][col]
+            if number > 0:  # 只绘制未消除的数字
+                self.canvas.create_text(
+                    (x1+x2)//2, 
+                    (y1+y2)//2, 
+                    text=str(number), 
+                    fill=self.COLORS['text'],
+                    font=("Arial", 16)
+                )
     
     def get_cell_position(self, x, y):
         """根据鼠标位置获取对应的单元格行列"""
@@ -185,7 +240,19 @@ class NumberEliminationGame:
             
             # 增加分数
             self.score += 100
-            self.score_label.config(text=f"得分: {self.score}")
+            self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
+            
+            # 检查是否达到目标分数
+            if self.score >= self.target_score:
+                self.message.set(f"恭喜通关第{self.level}关！")
+                self.game_over = True
+                self.stop_timer()
+                # 如果不是最后一关，提示可以进入下一关
+                if self.level < self.max_levels:
+                    self.message.set(f"恭喜通关第{self.level}关！按R键进入下一关")
+                else:
+                    self.message.set(f"恭喜通关所有关卡！")
+                return True
             
             # 检查游戏是否结束（只有在玩家主动消除时才检查）
             if self.check_game_over():
@@ -252,7 +319,18 @@ class NumberEliminationGame:
             self.message.set("未找到合适的提示")
             
         self.root.after(2000, lambda: self.message.set(""))
-        self.update_display()
+        # 只更新提示显示
+        self.canvas.delete("hint")
+        if self.hint_rect:
+            self.canvas.create_rectangle(
+                self.hint_rect[0],
+                self.hint_rect[1],
+                self.hint_rect[2],
+                self.hint_rect[3],
+                outline=self.COLORS['hint'],
+                width=3,
+                tags="hint"
+            )
     
     def find_rectangular_hint(self):
         """查找可以形成矩形框且和为10的数字组合"""
@@ -306,7 +384,10 @@ class NumberEliminationGame:
     def update_display(self):
         """更新显示"""
         self.draw_board()
-        
+        self.update_labels()
+    
+    def update_labels(self):
+        """更新标签显示"""
         # 更新选中数字之和
         if self.selected_cells:
             sum_value = sum(self.board[r][c] for r, c in self.selected_cells)
@@ -320,6 +401,39 @@ class NumberEliminationGame:
         else:
             self.sum_label.config(text="当前选择和: 0")
             self.hint_label.config(text="")
+    
+    def update_selection_display(self):
+        """只更新选择框显示，避免整个画布重绘"""
+        # 删除之前的选择框
+        self.canvas.delete("selection")
+        
+        # 绘制新的选择框
+        if self.selection_rect:
+            self.canvas.create_rectangle(
+                self.selection_rect[0],
+                self.selection_rect[1],
+                self.selection_rect[2],
+                self.selection_rect[3],
+                outline='blue',
+                width=2,
+                dash=(4, 2),
+                tags="selection"
+            )
+        
+        # 删除之前的提示框
+        self.canvas.delete("hint")
+        
+        # 绘制提示框
+        if self.hint_rect:
+            self.canvas.create_rectangle(
+                self.hint_rect[0],
+                self.hint_rect[1],
+                self.hint_rect[2],
+                self.hint_rect[3],
+                outline=self.COLORS['hint'],
+                width=3,
+                tags="hint"
+            )
     
     def on_click(self, event):
         """处理点击事件"""
@@ -337,7 +451,13 @@ class NumberEliminationGame:
         if self.selection_rect:
             self.selection_rect = None
             
-        self.update_display()
+        # 清除画布上的选择框和提示框
+        self.canvas.delete("selection")
+        self.canvas.delete("hint")
+        
+        # 更新标签显示
+        self.sum_label.config(text="当前选择和: 0")
+        self.hint_label.config(text="")
 
     def on_drag(self, event):
         """处理拖拽事件"""
@@ -375,7 +495,8 @@ class NumberEliminationGame:
                     self.board[row][col] > 0):
                     self.selected_cells.append((row, col))
         
-        self.update_display()
+        # 只更新选择框，不更新标签以避免闪烁
+        self.update_selection_display()
 
     def on_release(self, event):
         """处理鼠标释放事件"""
@@ -400,13 +521,32 @@ class NumberEliminationGame:
         # 停止当前计时器
         self.stop_timer()
         
+        # 检查是否需要重新创建界面（仅当关卡变化时）
+        level_changed = False
+        if self.score >= self.target_score and self.level < self.max_levels:
+            self.level += 1
+            level_changed = True
+        
+        # 只有关卡变化时才重新设置面板大小和重新创建界面
+        if level_changed:
+            # 设置新关卡
+            self.setup_level()
+            # 重新创建画布以适应新的面板大小
+            self.create_widgets()
+        else:
+            # 重置标签文本
+            self.level_label.config(text=f"关卡: {self.level}/{self.max_levels}")
+            self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
+            self.time_label.config(text=f"剩余时间: {self.GAME_TIME}s", fg='black')
+        
+        # 重置游戏状态
         self.board = [[random.randint(1, 9) for _ in range(self.COLS)] for _ in range(self.ROWS)]
         self.selected_cells.clear()
         self.hint_rect = None  # 清除提示
         self.message.set("")
         self.game_over = False  # 重置游戏结束标志
         self.score = 0  # 重置分数
-        self.score_label.config(text=f"得分: {self.score}")
+        self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
         self.time_left = self.GAME_TIME  # 重置时间
         self.time_label.config(text=f"剩余时间: {self.time_left}s", fg='black')  # 重置时间显示颜色
         self.update_display()
