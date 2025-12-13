@@ -16,7 +16,8 @@ class NumberEliminationGame:
         # 游戏常量设置
         self.CELL_SIZE = 40
         self.BOARD_PADDING = 20  # 棋盘周围的填充
-        self.GAME_TIME = 120  # 游戏时间120秒
+        self.BASE_GAME_TIME = 90  # 第一关游戏时间90秒
+        self.TIME_INCREMENT = 30  # 每关增加30秒
         
         # 颜色定义
         self.COLORS = {
@@ -48,7 +49,7 @@ class NumberEliminationGame:
         self.message.set("")
         self.game_over = False  # 游戏结束标志
         self.score = 0  # 初始化分数
-        self.time_left = self.GAME_TIME  # 剩余时间
+        self.time_left = self.BASE_GAME_TIME  # 剩余时间
         self.timer_id = None  # 计时器ID
         
         # 框选相关变量
@@ -80,6 +81,8 @@ class NumberEliminationGame:
         self.ROWS = level_config['rows']
         self.COLS = level_config['cols']
         self.target_score = level_config['target_score']
+        # 设置当前关卡的游戏时间
+        self.current_game_time = self.BASE_GAME_TIME + (self.level - 1) * self.TIME_INCREMENT
     
     def create_widgets(self):
         # 如果主框架已经存在，先销毁
@@ -537,7 +540,7 @@ class NumberEliminationGame:
             # 重置标签文本
             self.level_label.config(text=f"关卡: {self.level}/{self.max_levels}")
             self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
-            self.time_label.config(text=f"剩余时间: {self.GAME_TIME}s", fg='black')
+            self.time_label.config(text=f"剩余时间: {self.time_left}s", fg='black')
         
         # 重置游戏状态
         self.board = [[random.randint(1, 9) for _ in range(self.COLS)] for _ in range(self.ROWS)]
@@ -547,7 +550,7 @@ class NumberEliminationGame:
         self.game_over = False  # 重置游戏结束标志
         self.score = 0  # 重置分数
         self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
-        self.time_left = self.GAME_TIME  # 重置时间
+        self.time_left = self.current_game_time  # 重置时间
         self.time_label.config(text=f"剩余时间: {self.time_left}s", fg='black')  # 重置时间显示颜色
         self.update_display()
         self.start_timer()  # 重新开始计时
