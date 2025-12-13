@@ -550,10 +550,12 @@ class NumberEliminationGame:
         # 停止当前计时器
         self.stop_timer()
         
-        # 重置标签文本
-        self.level_label.config(text=f"关卡: {self.level}/{self.max_levels}")
-        self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
-        self.time_label.config(text=f"剩余时间: {self.time_left}s", fg='black')
+        # 重置关卡为第一关
+        self.level = 1
+        self.setup_level()
+        
+        # 如果面板大小发生变化，重新创建界面
+        self.create_widgets()
         
         # 重置游戏状态
         self.board = [[random.randint(1, 9) for _ in range(self.COLS)] for _ in range(self.ROWS)]
