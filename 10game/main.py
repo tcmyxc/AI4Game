@@ -248,6 +248,9 @@ class NumberEliminationGame:
             # 检查是否达到目标分数
             if self.score >= self.target_score:
                 self.stop_timer()
+                # 确保分数标签更新
+                self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
+                self.root.update_idletasks()  # 强制更新界面
                 # 如果不是最后一关，提示可以进入下一关
                 if self.level < self.max_levels:
                     # 弹出对话框询问是否进入下一关
