@@ -13,6 +13,7 @@ class NumberEliminationGame:
         self.COLS = 16
         self.CELL_SIZE = 40
         self.BOARD_PADDING = 20  # 棋盘周围的填充
+        self.GAME_TIME = 120  # 游戏时间120秒
         
         # 颜色定义
         self.COLORS = {
@@ -32,6 +33,8 @@ class NumberEliminationGame:
         self.message.set("")
         self.game_over = False  # 游戏结束标志
         self.score = 0  # 初始化分数
+        self.time_left = self.GAME_TIME  # 剩余时间
+        self.timer_id = None  # 计时器ID
         
         # 框选相关变量
         self.drawing_selection = False
@@ -42,6 +45,7 @@ class NumberEliminationGame:
         # 创建界面
         self.create_widgets()
         self.update_display()
+        self.start_timer()  # 开始计时
     
     def create_widgets(self):
         # 主框架
@@ -69,6 +73,9 @@ class NumberEliminationGame:
         self.score_label = tk.Label(info_frame, text=f"得分: {self.score}", font=("Arial", 12), bg=self.COLORS['bg'])
         self.score_label.pack(side='left', padx=(20, 0))
         
+        self.time_label = tk.Label(info_frame, text=f"剩余时间: {self.time_left}s", font=("Arial", 12), bg=self.COLORS['bg'])
+        self.time_label.pack(side='left', padx=(20, 0))
+        
         self.hint_label = tk.Label(info_frame, text="", font=("Arial", 12), fg=self.COLORS['highlight'], bg=self.COLORS['bg'])
         self.hint_label.pack(side='left', padx=(20, 0))
         
@@ -79,9 +86,6 @@ class NumberEliminationGame:
         button_frame = tk.Frame(main_frame, bg=self.COLORS['bg'])
         button_frame.pack(pady=10)
         
-        clear_btn = tk.Button(button_frame, text="清除选择 (C)", command=self.clear_selection)
-        clear_btn.pack(side='left', padx=5)
-        
         reset_btn = tk.Button(button_frame, text="重新开始 (R)", command=self.reset_game)
         reset_btn.pack(side='left', padx=5)
         
@@ -89,7 +93,6 @@ class NumberEliminationGame:
         hint_btn.pack(side='left', padx=5)
         
         # 绑定键盘事件
-        self.root.bind('<Key-c>', lambda e: self.clear_selection())
         self.root.bind('<Key-r>', lambda e: self.reset_game())
         self.root.bind('<Key-h>', lambda e: self.show_hint())  # 绑定H键触发提示
         self.root.focus_set()
@@ -184,11 +187,14 @@ class NumberEliminationGame:
             self.score += 100
             self.score_label.config(text=f"得分: {self.score}")
             
-            # 检查游戏是否结束
+            # 检查游戏是否结束（只有在玩家主动消除时才检查）
             if self.check_game_over():
                 self.game_over = True
                 self.message.set("游戏结束！没有可消除的数字组合了。")
-            else:
+                self.stop_timer()
+            
+            # 只在玩家主动操作成功时显示消息
+            if not self.game_over:
                 self.message.set("成功消除!")
                 self.root.after(2000, lambda: self.message.set(""))  # 2秒后清除消息
                 
@@ -198,6 +204,35 @@ class NumberEliminationGame:
             self.message.set(f"和为 {sum_value}，需要等于10")
             self.root.after(2000, lambda: self.message.set(""))  # 2秒后清除消息
             return False
+    
+    def start_timer(self):
+        """开始计时器"""
+        self.update_timer()
+    
+    def update_timer(self):
+        """更新计时器"""
+        if self.time_left > 0 and not self.game_over:
+            self.time_left -= 1
+            self.time_label.config(text=f"剩余时间: {self.time_left}s")
+            
+            # 当时间少于10秒时，用红色显示
+            if self.time_left <= 10:
+                self.time_label.config(fg='red')
+            
+            # 安排下一次更新
+            self.timer_id = self.root.after(1000, self.update_timer)
+        elif self.time_left <= 0 and not self.game_over:
+            # 时间到，游戏结束
+            self.game_over = True
+            self.message.set("时间到！游戏结束！")
+            self.stop_timer()
+            self.update_display()
+    
+    def stop_timer(self):
+        """停止计时器"""
+        if self.timer_id:
+            self.root.after_cancel(self.timer_id)
+            self.timer_id = None
     
     def show_hint(self):
         """显示提示：找出和为10的一组数字并用红框标记"""
@@ -360,21 +395,11 @@ class NumberEliminationGame:
             
             self.update_display()
     
-    def clear_selection(self):
-        """清除选择"""
-        if self.game_over:
-            return
-            
-        self.selected_cells.clear()
-        self.hint_rect = None  # 同时清除提示
-        self.selection_rect = None
-        self.drawing_selection = False
-        self.selection_start = None
-        self.selection_end = None
-        self.update_display()
-    
     def reset_game(self):
         """重新开始游戏"""
+        # 停止当前计时器
+        self.stop_timer()
+        
         self.board = [[random.randint(1, 9) for _ in range(self.COLS)] for _ in range(self.ROWS)]
         self.selected_cells.clear()
         self.hint_rect = None  # 清除提示
@@ -382,7 +407,10 @@ class NumberEliminationGame:
         self.game_over = False  # 重置游戏结束标志
         self.score = 0  # 重置分数
         self.score_label.config(text=f"得分: {self.score}")
+        self.time_left = self.GAME_TIME  # 重置时间
+        self.time_label.config(text=f"剩余时间: {self.time_left}s", fg='black')  # 重置时间显示颜色
         self.update_display()
+        self.start_timer()  # 重新开始计时
 
 def main():
     root = tk.Tk()
