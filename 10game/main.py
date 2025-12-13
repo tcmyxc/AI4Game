@@ -247,13 +247,18 @@ class NumberEliminationGame:
             
             # 检查是否达到目标分数
             if self.score >= self.target_score:
-                self.message.set(f"恭喜通关第{self.level}关！")
-                self.game_over = True
                 self.stop_timer()
                 # 如果不是最后一关，提示可以进入下一关
                 if self.level < self.max_levels:
-                    self.message.set(f"恭喜通关第{self.level}关！按R键进入下一关")
+                    # 弹出对话框询问是否进入下一关
+                    result = messagebox.askyesno("过关啦！", f"恭喜通关第{self.level}关！\n是否进入第{self.level+1}关？")
+                    if result:  # 用户选择进入下一关
+                        self.next_level()
+                    else:  # 用户选择不玩了
+                        self.game_over = True
+                        self.message.set(f"游戏结束，感谢游玩！")
                 else:
+                    self.game_over = True
                     self.message.set(f"恭喜通关所有关卡！")
                 return True
             
@@ -519,28 +524,36 @@ class NumberEliminationGame:
             
             self.update_display()
     
+    def next_level(self):
+        """进入下一关"""
+        self.level += 1
+        # 设置新关卡
+        self.setup_level()
+        # 重新创建画布以适应新的面板大小
+        self.create_widgets()
+        
+        # 重置游戏状态
+        self.board = [[random.randint(1, 9) for _ in range(self.COLS)] for _ in range(self.ROWS)]
+        self.selected_cells.clear()
+        self.hint_rect = None  # 清除提示
+        self.message.set("")
+        self.game_over = False  # 重置游戏结束标志
+        self.score = 0  # 重置分数
+        self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
+        self.time_left = self.current_game_time  # 重置时间
+        self.time_label.config(text=f"剩余时间: {self.time_left}s", fg='black')  # 重置时间显示颜色
+        self.update_display()
+        self.start_timer()  # 重新开始计时
+    
     def reset_game(self):
         """重新开始游戏"""
         # 停止当前计时器
         self.stop_timer()
         
-        # 检查是否需要重新创建界面（仅当关卡变化时）
-        level_changed = False
-        if self.score >= self.target_score and self.level < self.max_levels:
-            self.level += 1
-            level_changed = True
-        
-        # 只有关卡变化时才重新设置面板大小和重新创建界面
-        if level_changed:
-            # 设置新关卡
-            self.setup_level()
-            # 重新创建画布以适应新的面板大小
-            self.create_widgets()
-        else:
-            # 重置标签文本
-            self.level_label.config(text=f"关卡: {self.level}/{self.max_levels}")
-            self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
-            self.time_label.config(text=f"剩余时间: {self.time_left}s", fg='black')
+        # 重置标签文本
+        self.level_label.config(text=f"关卡: {self.level}/{self.max_levels}")
+        self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
+        self.time_label.config(text=f"剩余时间: {self.time_left}s", fg='black')
         
         # 重置游戏状态
         self.board = [[random.randint(1, 9) for _ in range(self.COLS)] for _ in range(self.ROWS)]
