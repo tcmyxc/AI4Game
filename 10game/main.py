@@ -15,6 +15,7 @@ class NumberEliminationGame:
         
         # 游戏常量设置 
         self.CELL_SIZE = 30
+        self.CELL_SPACING = 2  # 单元格之间的间距
         self.BOARD_PADDING = 10  # 棋盘周围的填充
         self.BASE_GAME_TIME = 120  # 第一关游戏时间120秒
         self.TIME_INCREMENT = 60  # 每关增加60秒
@@ -189,15 +190,23 @@ class NumberEliminationGame:
     
     def draw_cells(self, cells_to_draw):
         """绘制指定的单元格"""
+        # 实际绘制的单元格大小
+        CELL_DRAW_SIZE = self.CELL_SIZE - self.CELL_SPACING  # 实际绘制的单元格大小
+        
         for row, col in cells_to_draw:
             # 添加偏移量以考虑填充
-            x1 = self.BOARD_PADDING + col * self.CELL_SIZE
-            y1 = self.BOARD_PADDING + row * self.CELL_SIZE
-            x2 = x1 + self.CELL_SIZE
-            y2 = y1 + self.CELL_SIZE
+            x1 = self.BOARD_PADDING + col * self.CELL_SIZE + self.CELL_SPACING // 2
+            y1 = self.BOARD_PADDING + row * self.CELL_SIZE + self.CELL_SPACING // 2
+            x2 = x1 + CELL_DRAW_SIZE
+            y2 = y1 + CELL_DRAW_SIZE
             
-            # 绘制单元格背景（总是灰色）
-            self.canvas.create_rectangle(x1, y1, x2, y2, fill=self.COLORS['cell'], outline='black')
+            # 根据数字是否存在确定单元格背景色和边框
+            if self.board[row][col] == 0:
+                # 已消除的单元格 - 白色背景，无边框
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=self.COLORS['bg'], outline='')
+            else:
+                # 未消除的单元格 - 灰色背景，黑色边框
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=self.COLORS['cell'], outline='black')
             
             # 绘制数字
             number = self.board[row][col]
@@ -209,7 +218,7 @@ class NumberEliminationGame:
                     fill=self.COLORS['text'],
                     font=("Arial", 16)
                 )
-    
+
     def get_cell_position(self, x, y):
         """根据鼠标位置获取对应的单元格行列"""
         # 考虑填充偏移量
@@ -219,8 +228,14 @@ class NumberEliminationGame:
         # 检查是否在有效范围内
         if 0 <= row < self.ROWS and 0 <= col < self.COLS:
             # 确保点击位置在实际单元格内
-            if (self.BOARD_PADDING <= x < self.BOARD_PADDING + self.COLS * self.CELL_SIZE and 
-                self.BOARD_PADDING <= y < self.BOARD_PADDING + self.ROWS * self.CELL_SIZE):
+            # 计算带间距的单元格边界
+            cell_x1 = self.BOARD_PADDING + col * self.CELL_SIZE + self.CELL_SPACING // 2
+            cell_y1 = self.BOARD_PADDING + row * self.CELL_SIZE + self.CELL_SPACING // 2
+            cell_x2 = cell_x1 + (self.CELL_SIZE - self.CELL_SPACING)
+            cell_y2 = cell_y1 + (self.CELL_SIZE - self.CELL_SPACING)
+            
+            if (cell_x1 <= x <= cell_x2 and 
+                cell_y1 <= y <= cell_y2):
                 return row, col
         return None, None
     
@@ -390,11 +405,11 @@ class NumberEliminationGame:
                         
                         # 检查是否有数字在这个矩形区域内
                         if len(numbers_in_rect) > 0 and sum(numbers_in_rect) == 10:
-                            # 符合条件，返回矩形框坐标（加上填充偏移量）
-                            x1 = self.BOARD_PADDING + col1 * self.CELL_SIZE
-                            y1 = self.BOARD_PADDING + row1 * self.CELL_SIZE
-                            x2 = self.BOARD_PADDING + (col2 + 1) * self.CELL_SIZE
-                            y2 = self.BOARD_PADDING + (row2 + 1) * self.CELL_SIZE
+                            # 符合条件，返回矩形框坐标（加上填充偏移量和单元格间隙调整）
+                            x1 = self.BOARD_PADDING + col1 * self.CELL_SIZE + self.CELL_SPACING // 2
+                            y1 = self.BOARD_PADDING + row1 * self.CELL_SIZE + self.CELL_SPACING // 2
+                            x2 = self.BOARD_PADDING + (col2 + 1) * self.CELL_SIZE - self.CELL_SPACING // 2
+                            y2 = self.BOARD_PADDING + (row2 + 1) * self.CELL_SIZE - self.CELL_SPACING // 2
                             
                             return {
                                 'rect': (x1, y1, x2, y2),
@@ -507,7 +522,7 @@ class NumberEliminationGame:
         self.selected_cells.clear()
         for row in range(self.ROWS):
             for col in range(self.COLS):
-                # 添加偏移量以考虑填充
+                # 计算带间距的单元格中心点
                 cell_center_x = self.BOARD_PADDING + col * self.CELL_SIZE + self.CELL_SIZE // 2
                 cell_center_y = self.BOARD_PADDING + row * self.CELL_SIZE + self.CELL_SIZE // 2
                 
