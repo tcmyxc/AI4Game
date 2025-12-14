@@ -13,11 +13,11 @@ class NumberEliminationGame:
         self.max_levels = 10  # 最大关卡数
         self.level_configs = self.generate_level_configs()
         
-        # 游戏常量设置
-        self.CELL_SIZE = 40
-        self.BOARD_PADDING = 20  # 棋盘周围的填充
-        self.BASE_GAME_TIME = 90  # 第一关游戏时间90秒
-        self.TIME_INCREMENT = 30  # 每关增加30秒
+        # 游戏常量设置 
+        self.CELL_SIZE = 30
+        self.BOARD_PADDING = 10  # 棋盘周围的填充
+        self.BASE_GAME_TIME = 120  # 第一关游戏时间120秒
+        self.TIME_INCREMENT = 60  # 每关增加60秒
         
         # 颜色定义
         self.COLORS = {
@@ -267,9 +267,7 @@ class NumberEliminationGame:
             
             # 检查游戏是否结束（只有在玩家主动消除时才检查）
             if self.check_game_over():
-                self.game_over = True
-                self.message.set("游戏结束！没有可消除的数字组合了。")
-                self.stop_timer()
+                self.handle_no_more_moves()
             
             # 只在玩家主动操作成功时显示消息
             if not self.game_over:
@@ -282,7 +280,24 @@ class NumberEliminationGame:
             self.message.set(f"和为 {sum_value}，需要等于10")
             self.root.after(2000, lambda: self.message.set(""))  # 2秒后清除消息
             return False
+
+    def check_game_over(self):
+        """检查游戏是否结束（没有和为10的组合）"""
+        # 复用提示查找逻辑，如果没有找到任何提示，则游戏结束
+        return self.find_rectangular_hint() is None
     
+    def handle_no_more_moves(self):
+        """处理没有更多可移动的情况"""
+        self.game_over = True
+        self.stop_timer()
+        
+        if self.level < self.max_levels:
+            # 自动进入下一关
+            self.message.set("没有更多可消除的数字，即将进入下一关...")
+            self.root.after(2000, self.next_level_auto)
+        else:
+            self.message.set(f"恭喜通关所有关卡！")
+
     def start_timer(self):
         """开始计时器"""
         self.update_timer()
@@ -387,13 +402,21 @@ class NumberEliminationGame:
         
         return None  # 没有找到合适的矩形框
     
-    def check_game_over(self):
-        """检查游戏是否结束（没有和为10的组合）"""
-        # 复用提示查找逻辑，如果没有找到任何提示，则游戏结束
-        return self.find_rectangular_hint() is None
-    
+    def next_level_auto(self):
+        """自动进入下一关"""
+        if self.level < self.max_levels:
+            self.next_level()
+        else:
+            self.game_over = True
+            self.message.set(f"恭喜通关所有关卡！")
+
     def update_display(self):
         """更新显示"""
+        # 在每次更新显示时检查是否还有有效的移动
+        if not self.game_over and not self.find_rectangular_hint():
+            # 没有更多可移动的数字组合
+            self.handle_no_more_moves()
+        
         self.draw_board()
         self.update_labels()
     
