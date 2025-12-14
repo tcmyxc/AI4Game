@@ -104,24 +104,34 @@ class NumberEliminationGame:
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
         
-        # 信息显示区域
+        # 信息显示区域 - 分为两行
         info_frame = tk.Frame(self.main_frame, bg=self.COLORS['bg'])
         info_frame.pack(pady=10, fill='x')
         
-        self.level_label = tk.Label(info_frame, text=f"关卡: {self.level}/{self.max_levels}", font=("Arial", 12), bg=self.COLORS['bg'])
-        self.level_label.pack(side='left')
+        # 第一行：关卡和提示信息
+        first_row_frame = tk.Frame(info_frame, bg=self.COLORS['bg'])
+        first_row_frame.pack(fill='x', pady=(0, 5))
         
-        self.sum_label = tk.Label(info_frame, text="当前选择和: 0", font=("Arial", 12), bg=self.COLORS['bg'])
+        self.level_label = tk.Label(first_row_frame, text=f"关卡: {self.level}/{self.max_levels}", font=("Arial", 12), bg=self.COLORS['bg'], width=12, anchor='w')
+        self.level_label.pack(side='left', padx=(20, 0))
+
+        self.sum_label = tk.Label(first_row_frame, text="当前选择和: 0", font=("Arial", 12), bg=self.COLORS['bg'], width=12, anchor='w')
         self.sum_label.pack(side='left', padx=(20, 0))
         
-        self.score_label = tk.Label(info_frame, text=f"得分: {self.score}/{self.target_score}", font=("Arial", 12), bg=self.COLORS['bg'])
+        self.hint_label = tk.Label(first_row_frame, text="", font=("Arial", 12), fg=self.COLORS['highlight'], bg=self.COLORS['bg'])
+        self.hint_label.pack(side='left', padx=(20, 0))
+        
+        # 第二行：得分和时间信息
+        second_row_frame = tk.Frame(info_frame, bg=self.COLORS['bg'])
+        second_row_frame.pack(fill='x')
+        
+        # 固定得分标签的宽度
+        self.score_label = tk.Label(second_row_frame, text=f"得分: {self.score}/{self.target_score}", font=("Arial", 12), bg=self.COLORS['bg'], width=12, anchor='w')
         self.score_label.pack(side='left', padx=(20, 0))
         
-        self.time_label = tk.Label(info_frame, text=f"剩余时间: {self.time_left}s", font=("Arial", 12), bg=self.COLORS['bg'])
+        # 固定时间标签的宽度
+        self.time_label = tk.Label(second_row_frame, text=f"剩余时间: {self.time_left}s", font=("Arial", 12), bg=self.COLORS['bg'], width=15, anchor='w')
         self.time_label.pack(side='left', padx=(20, 0))
-        
-        self.hint_label = tk.Label(info_frame, text="", font=("Arial", 12), fg=self.COLORS['highlight'], bg=self.COLORS['bg'])
-        self.hint_label.pack(side='left', padx=(20, 0))
         
         self.message_label = tk.Label(self.main_frame, textvariable=self.message, font=("Arial", 12), fg='red', bg=self.COLORS['bg'])
         self.message_label.pack()
@@ -435,6 +445,12 @@ class NumberEliminationGame:
         else:
             self.sum_label.config(text="当前选择和: 0")
             self.hint_label.config(text="")
+        
+        # 更新得分标签，保持固定宽度
+        self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
+        
+        # 更新时间标签，保持固定宽度
+        self.time_label.config(text=f"剩余时间: {self.time_left}s")
     
     def update_selection_display(self):
         """只更新选择框显示，避免整个画布重绘"""
