@@ -36,10 +36,8 @@ class NumberEliminationGame:
         self.main_frame = None
         self.canvas = None
         self.level_label = None
-        self.sum_label = None
         self.score_label = None
         self.time_label = None
-        self.hint_label = None
         self.message_label = None
         
         self.board = [[random.randint(1, 9) for _ in range(self.COLS)] for _ in range(self.ROWS)]
@@ -108,19 +106,13 @@ class NumberEliminationGame:
         info_frame = tk.Frame(self.main_frame, bg=self.COLORS['bg'])
         info_frame.pack(pady=10, fill='x')
         
-        # 第一行：关卡和提示信息
+        # 第一行：关卡信息
         first_row_frame = tk.Frame(info_frame, bg=self.COLORS['bg'])
         first_row_frame.pack(fill='x', pady=(0, 5))
         
         self.level_label = tk.Label(first_row_frame, text=f"关卡: {self.level}/{self.max_levels}", font=("Arial", 12), bg=self.COLORS['bg'], width=12, anchor='w')
         self.level_label.pack(side='left', padx=(20, 0))
 
-        self.sum_label = tk.Label(first_row_frame, text="当前选择和: 0", font=("Arial", 12), bg=self.COLORS['bg'], width=12, anchor='w')
-        self.sum_label.pack(side='left', padx=(20, 0))
-        
-        self.hint_label = tk.Label(first_row_frame, text="", font=("Arial", 12), fg=self.COLORS['highlight'], bg=self.COLORS['bg'])
-        self.hint_label.pack(side='left', padx=(20, 0))
-        
         # 第二行：得分和时间信息
         second_row_frame = tk.Frame(info_frame, bg=self.COLORS['bg'])
         second_row_frame.pack(fill='x')
@@ -432,20 +424,6 @@ class NumberEliminationGame:
     
     def update_labels(self):
         """更新标签显示"""
-        # 更新选中数字之和
-        if self.selected_cells:
-            sum_value = sum(self.board[r][c] for r, c in self.selected_cells)
-            self.sum_label.config(text=f"当前选择和: {sum_value}")
-            
-            # 如果和为10，提示可以消除
-            if sum_value == 10:
-                self.hint_label.config(text="点击任意选中数字以消除")
-            else:
-                self.hint_label.config(text="")
-        else:
-            self.sum_label.config(text="当前选择和: 0")
-            self.hint_label.config(text="")
-        
         # 更新得分标签，保持固定宽度
         self.score_label.config(text=f"得分: {self.score}/{self.target_score}")
         
@@ -505,10 +483,6 @@ class NumberEliminationGame:
         self.canvas.delete("selection")
         self.canvas.delete("hint")
         
-        # 更新标签显示
-        self.sum_label.config(text="当前选择和: 0")
-        self.hint_label.config(text="")
-
     def on_drag(self, event):
         """处理拖拽事件"""
         if self.game_over or not (self.drawing_selection and self.selection_start):
