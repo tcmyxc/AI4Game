@@ -495,14 +495,12 @@ class NumberEliminationGame:
         for row in range(self.ROWS):
             for col in range(self.COLS):
                 # 添加偏移量以考虑填充
-                cell_x1 = self.BOARD_PADDING + col * self.CELL_SIZE
-                cell_y1 = self.BOARD_PADDING + row * self.CELL_SIZE
-                cell_x2 = cell_x1 + self.CELL_SIZE
-                cell_y2 = cell_y1 + self.CELL_SIZE
+                cell_center_x = self.BOARD_PADDING + col * self.CELL_SIZE + self.CELL_SIZE // 2
+                cell_center_y = self.BOARD_PADDING + row * self.CELL_SIZE + self.CELL_SIZE // 2
                 
-                # 检查单元格是否与选择框有交集
-                if (cell_x1 < right and cell_x2 > left and 
-                    cell_y1 < bottom and cell_y2 > top and
+                # 检查单元格中心是否在选择框内
+                if (left <= cell_center_x <= right and 
+                    top <= cell_center_y <= bottom and
                     self.board[row][col] > 0):
                     self.selected_cells.append((row, col))
         
